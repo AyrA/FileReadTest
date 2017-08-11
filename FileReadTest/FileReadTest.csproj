@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="clsDirectoryScanner.cs" />
+    <Compile Include="clsFileReader.cs" />
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
