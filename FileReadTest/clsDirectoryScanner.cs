@@ -7,7 +7,8 @@ using static FileReadTest.DirectoryScanner;
 namespace FileReadTest
 {
     public delegate void ThreadScanEventHandler(DirectoryScanner Sender, ThreadScanEventArgs Args);
-    public class DirectoryScanner
+
+    public class DirectoryScanner : IDisposable
     {
         public class ThreadScanEventArgs
         {
@@ -32,6 +33,13 @@ namespace FileReadTest
         {
             sync = new object();
             RootDirectory = RootDir;
+        }
+
+        public void Dispose()
+        {
+            Abort();
+            FileList = null;
+            GC.Collect();
         }
 
         /// <summary>
@@ -62,9 +70,9 @@ namespace FileReadTest
         {
             lock (sync)
             {
+                cont = false;
                 if (T != null)
                 {
-                    cont = false;
                     T.Join();
                     T = null;
                 }

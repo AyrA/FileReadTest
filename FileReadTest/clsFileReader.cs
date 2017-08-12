@@ -9,6 +9,7 @@ using System.Threading;
 namespace FileReadTest
 {
     public delegate void FileReadResult(FileReadResultArgs Args);
+    public delegate void FileProgressHandler(long Position, long Length, string FileName);
 
     public class FileReadResultArgs
     {
@@ -29,6 +30,7 @@ namespace FileReadTest
             public FileStream FS;
             public bool GenerateHash;
             public FileReadResult Delegate;
+            public FileProgressHandler FileProgress;
         }
 
         public enum ReadResult : int
@@ -46,7 +48,8 @@ namespace FileReadTest
             /// </summary>
             FileNotFound = 2
         }
-        public static ReadResult ReadFile(string FileName, bool GenerateHash, FileReadResult Delegate)
+
+        public static ReadResult ReadFile(string FileName, bool GenerateHash = false, FileReadResult Delegate = null, FileProgressHandler FileProgress = null)
         {
             if (File.Exists(FileName))
             {
@@ -65,13 +68,16 @@ namespace FileReadTest
                     Name = "File reader for " + FileName,
                     Priority = ThreadPriority.BelowNormal
                 };
-                T.Start(new ThreadArgs() {
+                T.Start(new ThreadArgs()
+                {
                     FileName = FileName,
                     FS = FS,
                     GenerateHash = GenerateHash,
                     T = T,
-                    Delegate = Delegate
+                    Delegate = Delegate,
+                    FileProgress = FileProgress
                 });
+                return ReadResult.Reading;
             }
             return ReadResult.FileNotFound;
         }
@@ -87,41 +93,57 @@ namespace FileReadTest
                 HA = SHA256.Create();
             }
             int Readed = 0;
+            double Perc = 0;
             using (TA.FS)
             {
-                while (TA.FS.Position < TA.FS.Length)
+                if (TA.FS.Length > 0)
                 {
-                    try
+                    while (TA.FS.Position < TA.FS.Length)
                     {
-                        Readed = TA.FS.Read(Buffer, 0, Buffer.Length);
-                        if (HA != null)
+                        try
                         {
-                            if (TA.FS.Position < TA.FS.Length)
+                            Readed = TA.FS.Read(Buffer, 0, Buffer.Length);
+                            if (HA != null)
                             {
-                                HA.TransformBlock(Buffer, 0, Readed, Buffer, 0);
+                                if (TA.FS.Position < TA.FS.Length)
+                                {
+                                    HA.TransformBlock(Buffer, 0, Readed, Buffer, 0);
+                                }
+                                else
+                                {
+                                    HA.TransformFinalBlock(Buffer, 0, Readed);
+                                }
                             }
-                            else
+                            if (Perc != CalcPerc(TA.FS.Position, TA.FS.Length))
                             {
-                                HA.TransformFinalBlock(Buffer, 0, Readed);
+                                Perc = CalcPerc(TA.FS.Position, TA.FS.Length);
+                                TA.FileProgress?.Invoke(TA.FS.Position, TA.FS.Length, TA.FileName);
                             }
+                        }
+                        catch
+                        {
+                            if (HA != null)
+                            {
+                                using (HA)
+                                {
+                                    HA.Clear();
+                                }
+                            }
+                            TA.Delegate?.Invoke(new FileReadResultArgs()
+                            {
+                                FileName = TA.FileName,
+                                Hash = null,
+                                Success = false
+                            });
+                            return;
                         }
                     }
-                    catch
+                }
+                else
+                {
+                    if (HA != null)
                     {
-                        if (HA != null)
-                        {
-                            using (HA)
-                            {
-                                HA.Clear();
-                            }
-                        }
-                        TA.Delegate?.Invoke(new FileReadResultArgs()
-                        {
-                            FileName = TA.FileName,
-                            Hash = null,
-                            Success = false
-                        });
-                        return;
+                        HA.TransformFinalBlock(new byte[0], 0, 0);
                     }
                 }
             }
@@ -140,6 +162,11 @@ namespace FileReadTest
                 Hash = BitConverter.ToString(Hash).Replace("-", string.Empty),
                 Success = true
             });
+        }
+
+        private static double CalcPerc(double curr, double max)
+        {
+            return curr * 100.0 / max;
         }
     }
 }

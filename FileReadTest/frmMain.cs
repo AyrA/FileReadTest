@@ -57,7 +57,12 @@ namespace FileReadTest
                     if (x.IsComplete)
                     {
                         tbLog.Text = "Operation Completed\r\n" + tbLog.Text;
-                        SetControlState(false);
+                        var Scanner = new frmScanner((string[])Sender.FileList.Clone(), cbHashes.Checked);
+                        Sender.Dispose();
+                        Hide();
+                        Scanner.ShowDialog();
+                        SetControlState(true);
+                        Show();
                     }
                 }
             }
