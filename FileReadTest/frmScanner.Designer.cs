@@ -71,9 +71,10 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lblFile.Location = new System.Drawing.Point(12, 17);
             this.lblFile.Name = "lblFile";
-            this.lblFile.Size = new System.Drawing.Size(546, 20);
+            this.lblFile.Size = new System.Drawing.Size(546, 18);
             this.lblFile.TabIndex = 2;
             this.lblFile.Text = "Initializing...";
+            this.lblFile.UseMnemonic = false;
             // 
             // frmScanner
             // 

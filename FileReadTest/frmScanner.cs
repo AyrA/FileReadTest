@@ -32,7 +32,7 @@ namespace FileReadTest
             if (Cont && pbTotal.Value < FileList.Length)
             {
                 string current = null;
-                Text = string.Format("File Reader | {0:#.0}%",pbTotal.Value / (double)FileList.Length * 100.0);
+                Text = string.Format("File Reader | {0:0.0}%",pbTotal.Value / (double)FileList.Length * 100.0);
                 switch (FileReader.ReadFile(current = FileList[pbTotal.Value++], Hashes, NextScan, Progress))
                 {
                     case FileReader.ReadResult.ErrorOpening:
